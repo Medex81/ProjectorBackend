@@ -1,0 +1,293 @@
+# services/api-gateway/test/fixtures/openapi_specs/game_service.yaml
+openapi: 3.0.0
+info:
+  title: Game Service
+  description: Multiplayer game service API
+  version: 1.0.0
+  contact:
+    name: ProjectorBackend
+    email: support@projector.com
+
+servers:
+  - url: http://localhost:8084
+    description: Local development server
+  - url: https://api.projector.com/game
+    description: Production server
+
+tags:
+  - name: game
+    description: Game endpoints
+  - name: player
+    description: Player management
+  - name: match
+    description: Matchmaking
+
+paths:
+  /api/v1/game/state:
+    get:
+      tags:
+        - game
+      summary: Get current game state
+      operationId: getGameState
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: player_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current game state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameState'
+
+  /api/v1/game/move:
+    post:
+      tags:
+        - game
+      summary: Make a move in the game
+      operationId: makeMove
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Move'
+      responses:
+        '200':
+          description: Move accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveResult'
+
+  /api/v1/player/profile:
+    get:
+      tags:
+        - player
+      summary: Get player profile
+      operationId: getPlayerProfile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: player_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Player profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+
+  /api/v1/player/stats:
+    get:
+      tags:
+        - player
+      summary: Get player statistics
+      operationId: getPlayerStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: player_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Player statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerStats'
+
+  /api/v1/match/queue:
+    post:
+      tags:
+        - match
+      summary: Join matchmaking queue
+      operationId: joinQueue
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                game_mode:
+                  type: string
+                  enum: [casual, ranked]
+                elo_range:
+                  type: integer
+                  minimum: 0
+                  maximum: 1000
+      responses:
+        '202':
+          description: Joined queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueStatus'
+
+  /api/v1/match/status:
+    get:
+      tags:
+        - match
+      summary: Get match status
+      operationId: getMatchStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: match_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Match status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+
+components:
+  schemas:
+    GameState:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        board:
+          type: object
+        turn:
+          type: integer
+        status:
+          type: string
+          enum: [waiting, active, finished]
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        elo:
+          type: integer
+        level:
+          type: integer
+        avatar:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, in_game]
+
+    Move:
+      type: object
+      required:
+        - game_id
+        - player_id
+        - move_data
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        player_id:
+          type: string
+          format: uuid
+        move_data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    MoveResult:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+        new_state:
+          $ref: '#/components/schemas/GameState'
+        message:
+          type: string
+
+    PlayerStats:
+      type: object
+      properties:
+        games_played:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        draws:
+          type: integer
+        current_streak:
+          type: integer
+        best_streak:
+          type: integer
+        total_score:
+          type: integer
+
+    QueueStatus:
+      type: object
+      properties:
+        position:
+          type: integer
+        estimated_wait:
+          type: integer
+        joined_at:
+          type: string
+          format: date-time
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        players:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [pending, active, completed]
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

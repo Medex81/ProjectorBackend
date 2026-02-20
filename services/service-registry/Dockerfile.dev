@@ -1,0 +1,65 @@
+# services/service-registry/Dockerfile.dev
+FROM golang:1.25.7-alpine AS builder
+
+WORKDIR /app
+
+# Install air for hot reload
+RUN go install github.com/air-verse/air@latest
+
+# Install migration tool
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
+# Copy go mod files
+COPY services/service-registry/go.mod services/service-registry/go.sum ./
+COPY pkg/common/go.mod pkg/common/go.sum ../../pkg/common/
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY services/service-registry/ .
+COPY pkg/common ../../pkg/common/
+
+# Create air config
+RUN echo 'root = "."\n\
+tmp_dir = "tmp"\n\
+[build]\n\
+  bin = "./tmp/main"\n\
+  cmd = "go build -o ./tmp/main ./cmd/main.go"\n\
+  delay = 1000\n\
+  exclude_dir = ["assets", "tmp", "vendor"]\n\
+  exclude_file = []\n\
+  exclude_regex = ["_test.go"]\n\
+  exclude_unchanged = false\n\
+  follow_symlink = false\n\
+  full_bin = ""\n\
+  include_dir = []\n\
+  include_ext = ["go", "yaml", "yml"]\n\
+  kill_delay = "0s"\n\
+  log = "build-errors.log"\n\
+  send_interrupt = false\n\
+  stop_on_error = false\n\
+[color]\n\
+  app = ""\n\
+  build = "yellow"\n\
+  main = "magenta"\n\
+  runner = "green"\n\
+  watcher = "cyan"\n\
+[log]\n\
+  time = false\n\
+[misc]\n\
+  clean_on_exit = false' > .air.toml
+
+# Create entrypoint script
+RUN echo '#!/bin/sh\n\
+set -e\n\
+\n\
+echo "Running database migrations..."\n\
+goose -dir migrations postgres "postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" up\n\
+\n\
+echo "Starting service..."\n\
+exec air -c .air.toml' > entrypoint.sh && chmod +x entrypoint.sh
+
+EXPOSE 8081 50051
+
+ENTRYPOINT ["./entrypoint.sh"]

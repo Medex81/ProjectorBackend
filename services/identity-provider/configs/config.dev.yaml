@@ -1,0 +1,53 @@
+# services/identity-provider/configs/config.dev.yaml
+service:
+  name: identity-provider
+  port: 8082
+  grpc_port: 50053
+  environment: development
+  version: 1.0.0
+  shutdown_timeout: 30s
+
+database:
+  host: postgres-identity
+  port: 5432
+  user: projector
+  password: projector123
+  dbname: identity
+  sslmode: disable
+
+redis:
+  addr: redis:6379
+  password: ""
+  db: 0
+
+kafka:
+  brokers:
+    - kafka:9092
+  topics:
+    email_verification: email-verification
+    service_events: service-events
+    logs: service-logs
+
+auth:
+  jwt_secret: your-secret-key-here-change-in-production
+  token_expiration: 720h  # 30 days
+  verification_code_ttl: 10m
+
+mail:
+  smtp_host: smtp.gmail.com
+  smtp_port: 587
+  smtp_user: your-email@gmail.com
+  smtp_password: your-app-password
+  from_email: noreply@projector.com
+
+jaeger:
+  agent_host: jaeger
+  agent_port: 6831
+
+logging:
+  level: debug
+  format: console
+
+metrics:
+  enabled: true
+  path: /metrics

@@ -1,0 +1,46 @@
+# services/mail-service/configs/config.dev.yaml
+service:
+  name: mail-service
+  port: 8083
+  environment: development
+  version: 1.0.0
+  shutdown_timeout: 30s
+
+kafka:
+  brokers:
+    - kafka:9092
+  topics:
+    email_verification: email-verification
+    service_events: service-events
+    logs: service-logs
+  consumer_group: mail-service
+
+mail:
+  smtp_host: smtp.gmail.com
+  smtp_port: 587
+  smtp_user: your-email@gmail.com
+  smtp_password: your-app-password
+  from_email: noreply@projector.com
+  templates_path: /app/templates
+
+jaeger:
+  agent_host: jaeger
+  agent_port: 6831
+
+logging:
+  level: debug
+  format: console
+
+metrics:
+  enabled: true
+  path: /metrics
+
+redis:
+  addr: redis:6379
+  password: ""
+  db: 1
+
+rate_limit:
+  emails_per_second: 10
+  max_retries: 3
+  retry_delay: 5s

@@ -1,0 +1,195 @@
+# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  # Service Registry & Discovery
+  service-registry:
+    build:
+      context: ./services/service-registry
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./services/service-registry:/app
+      - /app/tmp
+    environment:
+      - CONFIG_PATH=/app/configs/config.dev.yaml
+      - KAFKA_BROKERS=kafka:9092
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - kafka
+      - redis
+    networks:
+      - projector-network
+
+  # Identity Provider Service
+  identity-provider:
+    build:
+      context: ./services/identity-provider
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./services/identity-provider:/app
+      - /app/tmp
+    environment:
+      - CONFIG_PATH=/app/configs/config.dev.yaml
+      - KAFKA_BROKERS=kafka:9092
+      - POSTGRES_HOST=postgres-identity
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - kafka
+      - postgres-identity
+      - redis
+      - mail-service
+    networks:
+      - projector-network
+
+  # Mail Service
+  mail-service:
+    build:
+      context: ./services/mail-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./services/mail-service:/app
+      - /app/tmp
+    environment:
+      - CONFIG_PATH=/app/configs/config.dev.yaml
+      - KAFKA_BROKERS=kafka:9092
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - kafka
+      - redis
+    networks:
+      - projector-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+      - "8080:8080/udp"  # For ENET protocol
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/tmp
+    environment:
+      - CONFIG_PATH=/app/configs/config.dev.yaml
+      - KAFKA_BROKERS=kafka:9092
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - kafka
+      - redis
+      - service-registry
+    networks:
+      - projector-network
+
+  # Databases
+  postgres-identity:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=projector
+      - POSTGRES_PASSWORD=projector123
+      - POSTGRES_DB=identity
+    volumes:
+      - postgres-identity-data:/var/lib/postgresql/data
+    networks:
+      - projector-network
+
+  postgres-registry:
+    image: postgres:15-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=projector
+      - POSTGRES_PASSWORD=projector123
+      - POSTGRES_DB=registry
+    volumes:
+      - postgres-registry-data:/var/lib/postgresql/data
+    networks:
+      - projector-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - projector-network
+
+  # Message Broker
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - projector-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - projector-network
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - projector-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - projector-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # UI
+      - "14250:14250"  # gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - projector-network
+
+networks:
+  projector-network:
+    driver: bridge
+
+volumes:
+  postgres-identity-data:
+  postgres-registry-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:

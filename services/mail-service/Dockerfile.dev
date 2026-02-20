@@ -1,0 +1,58 @@
+# services/mail-service/Dockerfile.dev
+FROM golang:1.25.7-alpine AS builder
+
+WORKDIR /app
+
+# Install air for hot reload
+RUN go install github.com/air-verse/air@latest
+
+# Install additional tools
+RUN apk add --no-cache git make
+
+# Copy go mod files
+COPY services/mail-service/go.mod services/mail-service/go.sum ./
+COPY pkg/common/go.mod pkg/common/go.sum ../../pkg/common/
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY services/mail-service/ .
+COPY pkg/common ../../pkg/common/
+
+# Create air config
+RUN echo 'root = "."\n\
+tmp_dir = "tmp"\n\
+[build]\n\
+  bin = "./tmp/main"\n\
+  cmd = "go build -o ./tmp/main ./cmd/main.go"\n\
+  delay = 1000\n\
+  exclude_dir = ["assets", "tmp", "vendor"]\n\
+  exclude_file = []\n\
+  exclude_regex = ["_test.go"]\n\
+  exclude_unchanged = false\n\
+  follow_symlink = false\n\
+  full_bin = ""\n\
+  include_dir = []\n\
+  include_ext = ["go", "yaml", "yml", "html"]\n\
+  kill_delay = "0s"\n\
+  log = "build-errors.log"\n\
+  send_interrupt = false\n\
+  stop_on_error = false\n\
+[color]\n\
+  app = ""\n\
+  build = "yellow"\n\
+  main = "magenta"\n\
+  runner = "green"\n\
+  watcher = "cyan"\n\
+[log]\n\
+  time = false\n\
+[misc]\n\
+  clean_on_exit = false' > .air.toml
+
+# Copy templates
+COPY services/mail-service/templates/ ./templates/
+
+EXPOSE 8083
+
+CMD ["air", "-c", ".air.toml"]

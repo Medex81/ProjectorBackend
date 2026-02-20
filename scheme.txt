@@ -1,0 +1,272 @@
+ProjectorBackend/
+├── go.work                                         # Workspace file for multi-module
+├── go.work.sum
+├── README.md                                       # Project documentation
+├── test_auth.sh                                     # Test script for auth
+│
+├── docker-compose.dev.yml                           # Docker compose for local development
+├── monitoring/                                      # Monitoring configuration
+│   ├── prometheus/
+│   │   └── prometheus.yml                           # Prometheus config
+│   └── grafana/
+│       └── dashboards/                              # Grafana dashboards
+│           ├── services.json
+│           ├── database.json
+│           └── kafka.json
+│
+├── pkg/                                             # Shared packages (internal library)
+│   └── common/                                      # Common code shared between services
+│       ├── go.mod                                    # Module definition
+│       ├── go.sum
+│       ├── config/
+│       │   └── config.go                             # Configuration structures and loading
+│       ├── logger/
+│       │   └── logger.go                              # Logging setup (zerolog)
+│       ├── tracing/
+│       │   └── tracing.go                             # Distributed tracing (Jaeger)
+│       ├── metrics/
+│       │   └── metrics.go                              # Prometheus metrics
+│       ├── database/
+│       │   ├── postgres.go                             # PostgreSQL connection
+│       │   └── redis.go                                # Redis connection
+│       ├── kafka/
+│       │   └── kafka.go                                # Kafka producer/consumer
+│       ├── auth/
+│       │   └── jwt.go                                  # JWT handling
+│       ├── api/
+│       │   └── openapi.go                              # OpenAPI structures and merging
+│       └── middleware/
+│           ├── logging.go                               # HTTP logging middleware
+│           ├── metrics.go                               # HTTP metrics middleware
+│           ├── tracing.go                               # HTTP tracing middleware
+│           └── auth.go                                  # JWT auth middleware
+│
+├── services/                                          # Microservices
+│   ├── service-registry/                              # Service Registry & Discovery
+│   │   ├── go.mod
+│   │   ├── go.sum
+│   │   ├── Dockerfile.dev                             # Development Dockerfile with hot reload
+│   │   ├── cmd/
+│   │   │   └── main.go                                # Service entry point
+│   │   ├── configs/
+│   │   │   └── config.dev.yaml                        # Service configuration
+│   │   ├── internal/                                   # Private application code
+│   │   │   ├── models/
+│   │   │   │   └── service.go                          # Service models
+│   │   │   ├── repository/
+│   │   │   │   └── service_repository.go               # Database operations
+│   │   │   ├── service/
+│   │   │   │   └── registry_service.go                 # Business logic
+│   │   │   └── api/
+│   │   │       ├── handler.go                           # HTTP handlers
+│   │   │       └── grpc.go                              # gRPC service implementation
+│   │   └── migrations/
+│   │       └── 001_init.sql                             # Database migrations
+│   │
+│   ├── identity-provider/                              # Auth Service
+│   │   ├── go.mod
+│   │   ├── go.sum
+│   │   ├── Dockerfile.dev
+│   │   ├── cmd/
+│   │   │   └── main.go
+│   │   ├── configs/
+│   │   │   └── config.dev.yaml
+│   │   ├── internal/
+│   │   │   ├── models/
+│   │   │   │   ├── user.go
+│   │   │   │   └── auth.go
+│   │   │   ├── repository/
+│   │   │   │   └── user_repository.go
+│   │   │   ├── service/
+│   │   │   │   └── auth_service.go
+│   │   │   └── api/
+│   │   │       └── handler.go
+│   │   └── migrations/
+│   │       └── 001_init.sql
+│   │
+│   ├── mail-service/                                   # Email Service
+│   │   ├── go.mod
+│   │   ├── go.sum
+│   │   ├── Dockerfile.dev
+│   │   ├── cmd/
+│   │   │   └── main.go
+│   │   ├── configs/
+│   │   │   └── config.dev.yaml
+│   │   ├── internal/
+│   │   │   └── service/
+│   │   │       └── mail_service.go                      # Email sending logic
+│   │   └── templates/                                   # Email templates
+│   │       ├── verification.html
+│   │       └── welcome.html
+│   │
+│   └── api-gateway/                                     # API Gateway
+│       ├── go.mod
+│       ├── go.sum
+│       ├── Dockerfile.dev
+│       ├── cmd/
+│       │   └── main.go
+│       ├── configs/
+│       │   └── config.dev.yaml
+│       ├── internal/
+│       │   ├── models/
+│       │   │   └── gateway.go
+│       │   ├── router/
+│       │   │   ├── http_router.go                       # HTTP routing
+│       │   │   ├── ws_router.go                         # WebSocket handling
+│       │   │   ├── udp_server.go                        # UDP/ENET server
+│       │   │   └── grpc_server.go                       # gRPC server
+│       │   ├── proxy/
+│       │   │   └── service_proxy.go                     # Proxying to services
+│       │   ├── middleware/
+│       │   │   ├── auth.go                              # JWT validation
+│       │   │   ├── rate_limit.go                         # Rate limiting
+│       │   │   └── cors.go                               # CORS handling
+│       │   └── spec/
+│       │       └── spec_handler.go                       # OpenAPI spec management
+│       └── static/                                       # Static files
+│           └── spec/                                     # Cached OpenAPI specs
+│
+├── scripts/                                             # Utility scripts
+│   ├── init-db.sh                                        # Database initialization
+│   ├── create-service.sh                                 # Generate new service template
+│   └── wait-for-it.sh                                    # Wait for services to be ready
+│
+└── docs/                                                # Documentation
+    ├── api.md                                            # API documentation
+    ├── architecture.md                                   # Architecture overview
+    └── development.md                                    # Development guide
+
+Пояснения к структуре:
+Корневая директория
+    go.work - Go workspace для управления несколькими модулями
+    docker-compose.dev.yml - оркестрация всех сервисов для разработки
+    test_auth.sh - скрипт для тестирования авторизации
+
+pkg/common/
+Общие пакеты, используемые всеми микросервисами:
+    config - загрузка и парсинг конфигурации из YAML
+    logger - структурированное логирование (zerolog)
+    tracing - распределенная трассировка (Jaeger)
+    metrics - метрики Prometheus
+    database - подключение к PostgreSQL и Redis
+    kafka - продюсеры и консьюмеры Kafka
+    auth - JWT токены
+    api - структуры OpenAPI и их мерж
+    middleware - общие middleware для HTTP серверов
+
+services/
+Каждый микросервис - отдельный модуль Go:
+    cmd/ - точка входа
+    configs/ - конфигурационные файлы
+    internal/ - приватный код сервиса
+    migrations/ - SQL миграции для БД сервиса
+
+Мониторинг
+    prometheus/ - конфигурация сбора метрик
+    grafana/ - дашборды для визуализации
+
+Скрипты
+    scripts/ - вспомогательные скрипты для разработки
+
+Документация
+    docs/ - документация проекта
+
+
+go work init
+go mod init projectName
+npx tree2folder scheme.txt - из схемы преобразуем в иерархию директорий и пустых файлов.
+Запустите все сервисы:
+    docker-compose -f docker-compose.dev.yml up --build
+Проверьте работоспособность:
+# Проверка сервисов
+    curl http://localhost:8081/health  # Service Registry
+    curl http://localhost:8082/health  # Identity Provider
+# Метрики Prometheus
+    curl http://localhost:9090
+# Grafana (логин: admin, пароль: admin)
+    http://localhost:3000
+# Jaeger UI
+    http://localhost:16686
+
+Тестирование авторизации
+chmod +x test_auth.sh
+./test_auth.sh
+
+Конфигурация
+Каждый сервис имеет свой конфигурационный файл в директории configs/:
+    services/service-registry/configs/config.dev.yaml
+    services/identity-provider/configs/config.dev.yaml
+    services/mail-service/configs/config.dev.yaml
+
+Основные настройки:
+    Параметры подключения к БД
+    Настройки Kafka
+    JWT секреты и время жизни токенов
+    SMTP настройки для почты
+
+API Gateway
+Поддерживаемые протоколы
+    HTTP/HTTPS (порт 8080/8443)
+    WebSocket (ws/wss)
+    UDP (для ENET клиентов)
+    gRPC
+
+Версионирование API
+API версионируется через URL: /api/v1/*
+
+OpenAPI спецификация
+Клиент может получить актуальную спецификацию API:
+bash
+
+# Получить метаданные (ETag)
+curl -I http://localhost:8080/api/v1/spec
+
+# Получить спецификацию
+curl http://localhost:8080/api/v1/spec
+
+Мониторинг
+Prometheus метрики
+
+Каждый сервис экспортирует метрики на /metrics:
+    HTTP/gRPC запросы
+    Время ответа
+    Ошибки
+    Подключения к БД
+    Сообщения Kafka
+
+Grafana дашборды
+Предустановленные дашборды:
+    Общая статистика системы
+    Метрики сервисов
+    Производительность БД
+    Состояние Kafka
+
+Jaeger трейсинг
+Распределенная трассировка запросов через все сервисы.
+
+Горячая перезагрузка
+Все сервисы настроены на hot-reload с использованием Air:
+    Изменения в .go файлах автоматически перезапускают сервис
+    Изменения в конфигах также отслеживаются
+
+Добавление нового микросервиса
+    Создайте структуру в services/
+    Подключите общие пакеты из pkg/common/
+    Добавьте сервис в docker-compose.dev.yml
+    Зарегистрируйте сервис в Service Registry (через API или gRPC)
+
+Запуск тестов:
+# Все тесты
+go test ./services/api-gateway/... -v
+
+# С покрытием
+go test ./services/api-gateway/... -cover -coverprofile=coverage.out
+
+# HTML отчет
+go tool cover -html=coverage.out
+
+# Конкретный тест
+go test ./services/api-gateway/internal/middleware -run TestAuthMiddleware -v
+
+# Стресс-тесты
+go test ./services/api-gateway/internal/router -run TestUDPServer_HighLoad -v

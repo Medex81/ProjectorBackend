@@ -1,0 +1,87 @@
+# services/api-gateway/configs/config.dev.yaml
+service:
+  name: api-gateway
+  port: 8080
+  environment: development
+  version: 1.0.0
+  shutdown_timeout: 30s
+
+gateway:
+  http_port: 8080
+  https_port: 8443
+  ws_port: 8080
+  udp_port: 8080
+  grpc_port: 50052
+
+service_registry:
+  host: service-registry
+  port: 8081
+  refresh_interval: 30s
+
+auth:
+  jwt_secret: your-secret-key-here-change-in-production
+  token_expiration: 720h  # 30 days
+
+redis:
+  addr: redis:6379
+  password: ""
+  db: 0
+
+kafka:
+  brokers:
+    - kafka:9092
+  topics:
+    email_verification: email-verification
+    service_events: service-events
+    logs: service-logs
+
+jaeger:
+  agent_host: jaeger
+  agent_port: 6831
+
+rate_limiting:
+  enabled: true
+  default_limit: 100
+  default_interval: 1m
+  per_ip: true
+
+cors:
+  allowed_origins:
+    - "*"
+  allowed_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed_headers:
+    - Accept
+    - Authorization
+    - Content-Type
+    - X-Request-ID
+  allow_credentials: true
+  max_age: 86400
+
+logging:
+  level: debug
+  format: console
+
+metrics:
+  enabled: true
+  path: /metrics
+
+timeouts:
+  read: 15s
+  write: 15s
+  idle: 60s
+  proxy: 10s
+
+circuit_breaker:
+  enabled: true
+  max_failures: 5
+  timeout: 30s
+
+retry:
+  max_attempts: 3
+  initial_backoff: 100ms
+  max_backoff: 1s

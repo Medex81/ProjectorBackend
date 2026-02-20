@@ -1,0 +1,230 @@
+# services/api-gateway/test/fixtures/openapi_specs/auth_service.yaml
+openapi: 3.0.0
+info:
+  title: Authentication Service
+  description: User authentication and authorization service
+  version: 1.0.0
+  contact:
+    name: ProjectorBackend
+    email: support@projector.com
+
+servers:
+  - url: http://localhost:8082
+    description: Local development server
+  - url: https://api.projector.com/auth
+    description: Production server
+
+tags:
+  - name: auth
+    description: Authentication endpoints
+  - name: users
+    description: User management endpoints
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register a new user
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - app_id
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "SecurePass123!"
+                app_id:
+                  type: string
+                  description: Application identifier
+                  example: "godot-game"
+      responses:
+        '202':
+          description: Registration accepted, verification code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "accepted"
+                  message:
+                    type: string
+                    example: "Verification code sent to email"
+        '400':
+          description: Invalid request parameters
+        '409':
+          description: User already exists
+
+  /api/v1/auth/verify:
+    post:
+      tags:
+        - auth
+      summary: Verify email with code
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - code
+                - app_id
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  example: "123456"
+                app_id:
+                  type: string
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT access token
+                  expires_at:
+                    type: string
+                    format: date-time
+                  user_id:
+                    type: string
+                    format: uuid
+                  email:
+                    type: string
+        '401':
+          description: Invalid verification code
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login with credentials
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - app_id
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                app_id:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - auth
+      summary: Refresh access token
+      operationId: refreshToken
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /api/v1/users/me:
+    get:
+      tags:
+        - users
+      summary: Get current user profile
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        app_id:
+          type: string
+        verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        app_id:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
