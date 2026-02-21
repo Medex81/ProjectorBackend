@@ -9,17 +9,47 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/api",
+            "program": "${workspaceFolder}/services/api-gateway/cmd",
             "args": [],
             "cwd": "${workspaceFolder}"
-        }
+        },
+        {
+            "name": "identity-provider",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/services/identity-provider/cmd",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "mail-service",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/services/mail-service/cmd",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "service-registry",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/services/service-registry/cmd",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
     ],
     "compounds": [
         {
             "name": "Launch All Services",
             "configurations": [
-                "Launch API Server",
-                "Launch Worker"
+                "api-gateway",
+                "identity-provider",
+                "mail-service",
+                "service-registry"
             ]
         }
+    ]
 }
